@@ -23,6 +23,35 @@ const hero = heroScroll.querySelector('.hero');
 const header = document.querySelector('.site-header');
 const floatingPanels = [...document.querySelectorAll('.float-panel')];
 const startAngles = [-145, -35, 145, 35];
+const storySlides = [...document.querySelectorAll('.story-slide')];
+const storyMarkers = [...document.querySelectorAll('.story-progress span')];
+const storyTransitions = [[.18, .30], [.45, .57], [.72, .84]];
+function updateStory(progress) {
+  let from = 0;
+  let to = 0;
+  let blend = 0;
+  for (let index = 0; index < storyTransitions.length; index++) {
+    const [start, end] = storyTransitions[index];
+    if (progress >= end) { from = to = index + 1; }
+    else if (progress > start) {
+      from = index;
+      to = index + 1;
+      const t = (progress - start) / (end - start);
+      blend = t * t * (3 - 2 * t);
+      break;
+    } else break;
+  }
+  const active = blend >= .5 ? to : from;
+  storySlides.forEach((slide, index) => {
+    const opacity = from === to ? Number(index === from) : index === from ? 1 - blend : index === to ? blend : 0;
+    const offset = index === from ? -12 * (1 - opacity) : 12 * (1 - opacity);
+    slide.style.opacity = opacity;
+    slide.style.visibility = opacity > .001 ? 'visible' : 'hidden';
+    slide.style.transform = `translateY(${offset}px)`;
+    slide.setAttribute('aria-hidden', String(index !== active));
+    storyMarkers[index].classList.toggle('active', index === active);
+  });
+}
 let orbitEnabled = false;
 function configureOrbit() {
   // Short landscape viewports retain ordinary scrolling so all content is reachable.
@@ -31,6 +60,7 @@ function configureOrbit() {
   if (!orbitEnabled) {
     floatingPanels.forEach(panel => { panel.style.translate = ''; panel.style.opacity = ''; });
     hero.style.removeProperty('--orbit-progress');
+    updateStory(0);
   }
   updatePosition();
 }
@@ -41,6 +71,7 @@ function updatePosition() {
     const distance = heroScroll.offsetHeight - hero.offsetHeight;
     const progress = Math.max(0, Math.min(1, (window.scrollY - start) / distance));
     hero.style.setProperty('--orbit-progress', progress);
+    updateStory(progress);
     const maxWidth = Math.max(...floatingPanels.map(panel => panel.offsetWidth));
     const maxHeight = Math.max(...floatingPanels.map(panel => panel.offsetHeight));
     const radiusX = Math.max(0, (hero.clientWidth - maxWidth) / 2 - 22);

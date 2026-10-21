@@ -16,3 +16,16 @@
 .scroll-orbit-enabled .orbit-two{transform:rotate(calc(var(--orbit-progress,0) * -360deg))}
 @media(max-width:760px){:root{--header-height:60px}}
 @media(prefers-reduced-motion:reduce){.hero-scroll{height:auto!important}.hero-scroll .hero{position:relative!important;top:auto!important}.float-panel{translate:none!important}}
+
+/* Scroll-driven story: shared grid space keeps the controls still during fades. */
+.hero-story{display:grid;max-width:900px;margin:0 auto}
+.story-slide{grid-area:1/1;opacity:0;visibility:hidden;pointer-events:none}
+.story-slide:first-child{opacity:1;visibility:visible}
+.story-label{font:8px/1.5 var(--mono);letter-spacing:1.7px;color:var(--accent);margin:0 0 14px}
+.hero-story .hero-description{margin-bottom:0;max-width:620px}
+.story-progress{display:flex;justify-content:center;gap:6px;margin:22px auto 24px}
+.story-progress span{width:28px;height:2px;background:#ffffff22}
+.story-progress span.active{background:var(--accent)}
+.hero-content h1{margin-bottom:20px}
+@media(max-width:760px){.story-label{font-size:7px;margin-bottom:12px}.hero-story{max-width:420px}.hero-story .hero-description{max-width:350px}.story-progress{margin:18px auto 22px}.hero-content h1{margin-bottom:17px}}
+@media(prefers-reduced-motion:reduce){.story-slide{transform:none!important}}
