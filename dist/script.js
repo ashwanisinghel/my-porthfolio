@@ -16,36 +16,42 @@ document.addEventListener('keydown', event => {
     menu.focus();
   }
 });
-const motion = document.querySelector('.motion-toggle');
 const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
-function setPaused(paused) {
-  document.body.classList.toggle('motion-paused', paused);
-  motion.setAttribute('aria-pressed', String(paused));
-  motion.setAttribute('aria-label', paused ? 'Resume animations' : 'Pause animations');
-  motion.title = paused ? 'Resume animations' : 'Pause animations';
-  motion.querySelector('span').textContent = paused ? '▷' : 'Ⅱ';
-}
-setPaused(reduced.matches);
-if (reduced.matches) {
-  motion.disabled = true;
-  motion.title = 'Reduced motion enabled in your device settings';
-  motion.setAttribute('aria-label', 'Animations disabled by reduced motion preference');
-}
-motion.addEventListener('click', () => {
-  setPaused(!document.body.classList.contains('motion-paused'));
-  updatePosition();
-});
 const sections = [...document.querySelectorAll('main > section[id]')];
-const hero = document.getElementById('home');
+const heroScroll = document.getElementById('home');
+const hero = heroScroll.querySelector('.hero');
+const header = document.querySelector('.site-header');
 const floatingPanels = [...document.querySelectorAll('.float-panel')];
-const drift = [[-45, 150], [50, 110], [-35, 85], [40, 130]];
+const startAngles = [-145, -35, 145, 35];
+let orbitEnabled = false;
+function configureOrbit() {
+  // Short landscape viewports retain ordinary scrolling so all content is reachable.
+  orbitEnabled = !reduced.matches && window.innerHeight >= 620;
+  document.documentElement.classList.toggle('scroll-orbit-enabled', orbitEnabled);
+  if (!orbitEnabled) {
+    floatingPanels.forEach(panel => { panel.style.translate = ''; panel.style.opacity = ''; });
+    hero.style.removeProperty('--orbit-progress');
+  }
+  updatePosition();
+}
 let ticking = false;
 function updatePosition() {
-  if (!reduced.matches && !document.body.classList.contains('motion-paused')) {
-    const heroBounds = hero.getBoundingClientRect();
-    const progress = Math.max(0, Math.min(1, -heroBounds.top / heroBounds.height));
+  if (orbitEnabled) {
+    const start = heroScroll.offsetTop - header.offsetHeight;
+    const distance = heroScroll.offsetHeight - hero.offsetHeight;
+    const progress = Math.max(0, Math.min(1, (window.scrollY - start) / distance));
+    hero.style.setProperty('--orbit-progress', progress);
+    const maxWidth = Math.max(...floatingPanels.map(panel => panel.offsetWidth));
+    const maxHeight = Math.max(...floatingPanels.map(panel => panel.offsetHeight));
+    const radiusX = Math.max(0, (hero.clientWidth - maxWidth) / 2 - 22);
+    const radiusY = Math.max(0, (hero.clientHeight - maxHeight) / 2 - 32);
     floatingPanels.forEach((panel, index) => {
-      panel.style.translate = `${drift[index][0] * progress}px ${drift[index][1] * progress}px`;
+      const angle = (startAngles[index] + 360 * progress) * Math.PI / 180;
+      const x = radiusX * Math.cos(angle) - panel.offsetWidth / 2;
+      const y = radiusY * Math.sin(angle) - panel.offsetHeight / 2;
+      panel.style.translate = `${x}px ${y}px`;
+      // Keep the foreground copy readable as panels pass the sides on narrow screens.
+      panel.style.opacity = hero.clientWidth <= 760 ? .18 + .47 * Math.abs(Math.sin(angle)) : .85;
     });
   }
   const marker = window.scrollY + window.innerHeight * .35;
@@ -63,6 +69,7 @@ function updatePosition() {
 window.addEventListener('scroll', () => {
   if (!ticking) { requestAnimationFrame(updatePosition); ticking = true; }
 }, {passive:true});
-window.addEventListener('resize', updatePosition);
-updatePosition();
+window.addEventListener('resize', configureOrbit);
+reduced.addEventListener('change', configureOrbit);
+configureOrbit();
 document.getElementById('year').textContent = new Date().getFullYear();
